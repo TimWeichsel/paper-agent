@@ -12,7 +12,6 @@ def ask_gemini(prompt: str, model = "gemini-3-flash-preview") -> str:
     return answer
 
 def ask_gemini_with_retries(prompt: str, model = "gemini-3-flash-preview", retries=10, delay=10) -> str:
-    print(f"Asking Gemini with prompt: {prompt}")
     for attempt in range(retries):
         try:
             return ask_gemini(prompt, model)

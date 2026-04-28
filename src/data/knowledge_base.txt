@@ -1,280 +1,45 @@
-# Knowledge Base — Tim Weichsel
-# General ML Knowledge State (No Paper Recommendations)
-# Date: April 2026
-
+## WHAT KIND OF PAPERS I WANT:
+ 
+I am looking for foundational, widely cited papers that shaped modern ML and AI.
+Papers should introduce one clear, important concept that a mid-level ML practitioner
+is expected to know. Mathematical depth is welcome and encouraged — if a concept
+has an elegant mathematical formulation, please include and explain it.
+ 
+Good papers for me cover topics like:
+- Classical ML algorithms and their mathematical foundations
+  (e.g. how SVMs maximize margin, how decision trees split, how EM works)
+- Neural network training internals
+  (e.g. optimization, normalization, initialization, architecture choices)
+- Language models and their underlying mechanisms
+  (e.g. how attention is computed, how models are pretrained, how they are aligned)
+- Generative models and their math
+  (e.g. how VAEs use the reparameterization trick, how diffusion models denoise)
+- Representation learning
+  (e.g. how contrastive learning pulls similar samples together)
+- Reinforcement learning algorithms
+  (e.g. how policy gradients work, how Q-learning converges)
+- Computer vision architectures
+  (e.g. how convolutions share parameters, how ResNets solve vanishing gradients)
+ 
+A good paper for me:
+- Builds naturally on what I already know
+- Is considered a landmark or turning point in its field
+- Introduces a technique still relevant and used in practice today
+- Uses math where it helps understanding — formulas, derivations, intuitions
+- Connects well to concepts I already understand
+ 
+Avoid:
+- Very niche or overly specialized papers
+- Topics I already know well (see above)
+- Two papers from the same area in a row
+- Papers already covered in paper_list.txt
+ 
+If I ask for basic concepts, it is always a good idea to use the most prominent papers!
 ---
-
-## STRONG AREAS — Already well understood, papers should go deeper not repeat basics:
-
-Classical ML Fundamentals:
-- Loss functions, closed-form vs iterative optimization (GD, Adam, SGD)
-- Overfitting, underfitting, bias-variance tradeoff
-- Regularization concept and its role in complexity control
-- K-Fold Cross-Validation and hyperparameter search
-- Random Forest, Bagging vs Boosting (Boosting residuals understood well)
-- Supervised vs Unsupervised Learning distinction
-- Classification vs Regression distinction
-- Feature Engineering (transformations, combinations, derived features)
-- Precision, Recall, ROC, TPR tradeoff
-
-Deep Learning Fundamentals:
-- Backpropagation and chain rule
-- Activation functions (ReLU, Tanh, Sigmoid) and their role
-- Vanishing and exploding gradient problem
-- Dropout as regularization
-- Gradient Clipping concept
-- Embeddings as dense vector representations of inputs
-- Latent Space as compressed representation
-
-Modern ML Concepts:
-- Transformer architecture basic concept (attention over sequences)
-- Multi-Head Attention basic intuition
-- Transfer Learning and Fine-Tuning
-- Prompt Engineering basics
-- RLHF concept
-- Reinforcement Learning (agent, environment, rewards, Q-Table, DQN, Bellman, Exploit vs Explore)
-- RAG concept (Retrieval Augmented Generation)
-
----
-
-## WEAK AREAS & FULL LEARNING ROADMAP
-
-The following is a comprehensive list of ALL important topics in modern Data Science,
-Machine Learning, and AI that should be systematically covered through papers.
-Topics are grouped by theme. The agent should work through these broadly and not
-fixate on any single cluster.
-
----
-
-### CLUSTER 1: Classical ML Algorithms (Go Deeper)
-- Decision Trees internals (splitting criteria, Gini, Information Gain)
-- Support Vector Machines (kernel trick, margin maximization)
-- Naive Bayes and probabilistic classifiers
-- K-Nearest Neighbors (curse of dimensionality)
-- Linear and Logistic Regression in depth
-- Gradient Boosting Machines (XGBoost, LightGBM, CatBoost internals)
-- Expectation-Maximization (EM) algorithm
-- Hidden Markov Models
-- Gaussian Mixture Models
-- Kernel Methods in general
-- Clustering algorithms (K-Means, DBSCAN, hierarchical clustering)
-- Anomaly Detection methods
-
----
-
-### CLUSTER 2: Neural Network Internals & Optimization
-- Batch Normalization mechanism and effect (WEAK)
-- Layer Normalization vs Batch Normalization
-- Residual Connections and ResNets
-- Weight Initialization strategies (Xavier, He)
-- Adam optimizer internals (momentum + adaptive learning rate)
-- Learning Rate Scheduling (warmup, cosine annealing, cyclic)
-- Gradient accumulation
-- L1 vs L2 Regularization in depth (feature selection property of L1)
-- Early Stopping as implicit regularization
-- Label Smoothing
-- Knowledge Distillation Teacher-Student paradigm (WEAK)
-- Neural Architecture Search (NAS)
-- Hyperparameter Optimization (Bayesian Optimization, Optuna)
-
----
-
-### CLUSTER 3: Transformer Architecture (Deep Dive)
-- Positional Encoding (absolute, relative, RoPE) (WEAK)
-- BERT architecture and masked language modeling (WEAK)
-- GPT architecture and autoregressive generation (WEAK)
-- Encoder-Decoder architecture (T5, BART)
-- Attention Query/Key/Value mechanics in full detail
-- Scaled Dot-Product Attention
-- Cross-Attention vs Self-Attention
-- How Transformers handle long-range dependencies
-- Transformer efficiency (quadratic complexity problem)
-- Sparse Attention mechanisms (Longformer, BigBird)
-- Flash Attention
-- Vision Transformers (ViT)
-- CLIP (contrastive image-text pretraining)
-- DINO and self-supervised Vision Transformers
-
----
-
-### CLUSTER 4: Large Language Models (LLMs) — Full Coverage
-- Pre-training objectives and data (next token prediction, masked LM)
-- Scaling Laws (Chinchilla, compute-optimal training)
-- Tokenization strategies (BPE, WordPiece, SentencePiece)
-- In-context learning and few-shot prompting
-- Chain-of-Thought prompting
-- Instruction tuning (FLAN, InstructGPT)
-- RLHF in depth (PPO, reward modeling)
-- Constitutional AI and RLAIF
-- Parameter-Efficient Fine-Tuning (LoRA, Adapter layers, Prefix Tuning)
-- Quantization (INT8, INT4, GPTQ, AWQ)
-- Model Pruning and Sparsity
-- Speculative Decoding
-- Mixture of Experts (MoE) architectures (Mistral, GPT-4 rumors)
-- Long context handling (RoPE, ALiBi, sliding window attention)
-- Hallucination in LLMs — causes and mitigation
-- Emergent abilities in large models
-- GPT-2, GPT-3, GPT-4 architecture progression
-- LLaMA, Mistral, Gemma open source model families
-- Evaluation benchmarks for LLMs (MMLU, HumanEval, GSM8K)
-
----
-
-### CLUSTER 5: Retrieval Augmented Generation (RAG) — Full Coverage
-- RAG architecture (indexing, retrieval, generation pipeline)
-- Dense Passage Retrieval (DPR)
-- Bi-encoder vs Cross-encoder for retrieval
-- Chunking strategies for documents
-- Hybrid search (BM25 + dense retrieval)
-- Reranking models
-- HyDE (Hypothetical Document Embeddings)
-- Multi-hop reasoning in RAG
-- Agentic RAG and tool use
-- Evaluation of RAG systems (RAGAS)
-- GraphRAG (knowledge graph enhanced RAG)
-
----
-
-### CLUSTER 6: Probabilistic ML & Bayesian Methods (WEAK AREA)
-- MLE (Maximum Likelihood Estimation)
-- MAP (Maximum A Posteriori)
-- Bayesian inference fundamentals
-- Gaussian Processes
-- Bayesian Neural Networks
-- Variational Inference
-- Monte Carlo methods (MCMC, importance sampling)
-- Uncertainty quantification
-- Calibration of probabilistic models
-- Conformal Prediction
-
----
-
-### CLUSTER 7: Generative Models — Full Coverage
-- Variational Autoencoders (VAE) and reparameterization trick (WEAK)
-- GAN training dynamics and loss functions
-- Progressive GAN, StyleGAN
-- Normalizing Flows
-- Diffusion Models (DDPM, score-based models)
-- Stable Diffusion architecture
-- DALL-E, Imagen, Midjourney approaches
-- Flow Matching
-- Energy-Based Models
-
----
-
-### CLUSTER 8: Self-Supervised & Contrastive Learning (WEAK AREA)
-- Contrastive Learning fundamentals (SimCLR, MoCo)
-- CLIP and multimodal contrastive learning
-- BYOL (Bootstrap Your Own Latent)
-- Masked Autoencoders (MAE)
-- Self-supervised pretraining for vision
-- Self-supervised pretraining for NLP
-- World Models and self-supervised RL
-
----
-
-### CLUSTER 9: Reinforcement Learning (Go Deeper)
-- Policy Gradient Methods (REINFORCE, PPO, TRPO)
-- Actor-Critic architectures (A3C, SAC)
-- Model-Based RL
-- Multi-Agent RL
-- Offline RL (Conservative Q-Learning)
-- Reward Shaping and Curriculum Learning
-- Imitation Learning and Inverse RL
-- AlphaGo and AlphaZero
-- Decision Transformer (RL as sequence modeling)
-
----
-
-### CLUSTER 10: Representation Learning & Dimensionality Reduction
-- PCA in depth (eigenvectors, explained variance)
-- t-SNE and UMAP internals
-- ICA (Independent Component Analysis)
-- Autoencoders for representation learning
-- Disentangled Representations
-- Word2Vec, GloVe, FastText internals
-- Sentence Transformers
-- Graph Embeddings (Node2Vec, DeepWalk)
-
----
-
-### CLUSTER 11: Graph Neural Networks
-- Graph Neural Network basics (message passing)
-- GCN (Graph Convolutional Networks)
-- GAT (Graph Attention Networks)
-- GraphSAGE
-- Knowledge Graphs and embedding
-- Graph Transformers
-- Applications (molecular property prediction, social networks)
-
----
-
-### CLUSTER 12: Computer Vision (Go Deeper)
-- CNN internals (parameter sharing, stride, padding, pooling)
-- Object Detection (YOLO, Faster R-CNN, DETR)
-- Semantic vs Instance vs Panoptic Segmentation
-- Image Segmentation (U-Net, SAM)
-- Optical Flow and video understanding
-- 3D vision and point clouds
-- NeRF (Neural Radiance Fields)
-- Multimodal Vision-Language models (LLaVA, Flamingo)
-
----
-
-### CLUSTER 13: Agentic AI & LLM Agents
-- LLM Agent architectures (ReAct, Reflexion)
-- Tool use and function calling in LLMs
-- Planning with LLMs (Tree of Thought, Graph of Thought)
-- Memory systems for agents (short-term, long-term, episodic)
-- Multi-Agent systems
-- AutoGPT, BabyAGI style architectures
-- LangChain and LangGraph agent patterns
-- Code execution agents
-- Evaluation of LLM agents
-
----
-
-### CLUSTER 14: ML Systems & MLOps
-- Model serving and inference optimization
-- Feature Stores
-- Data versioning (DVC)
-- Experiment tracking (MLflow, Weights & Biases)
-- Model monitoring and drift detection
-- A/B testing for ML models
-- Continuous training pipelines
-- Vector databases in production (pgvector, Pinecone, Qdrant)
-- Distributed training (data parallelism, model parallelism)
-- Mixed precision training (FP16, BF16)
-
----
-
-### CLUSTER 15: Ethics, Fairness & Robustness
-- Algorithmic fairness definitions (demographic parity, equalized odds)
-- Bias in training data
-- Adversarial examples and robustness
-- Privacy in ML (differential privacy, federated learning)
-- Interpretability and explainability (SHAP, LIME, attention visualization)
-- AI safety fundamentals
-- Alignment problem overview
-
----
-
-### CLUSTER 16: Mathematics for ML (Foundations)
-- Linear Algebra for ML (SVD, eigendecomposition, matrix factorization)
-- Probability Theory (Bayes theorem, distributions, expectations)
-- Information Theory (entropy, KL divergence, mutual information)
-- Optimization Theory (convexity, saddle points, second-order methods)
-- Statistical Learning Theory (VC dimension, PAC learning, Rademacher complexity)
-
----
-
-## IMPORTANT NOTE FOR PAPER SELECTION:
-
-1. Do NOT repeat topics already covered in paper_list.txt
-2. Rotate across clusters — do not cover the same cluster two papers in a row
-3. Prioritize WEAK AREAS first (Cluster 3, 6, 7, 8 especially)
-4. Mix foundational papers with recent state-of-the-art papers
-5. Occasionally pick landmark papers (Attention is All You Need, AlexNet, Word2Vec)
-   as they are historically important even if the topic seems basic
-6. Papers should match current knowledge level — not too basic, not too advanced
-7. Consider interdisciplinary papers that connect multiple clusters
+ 
+## PAPER SELECTION RULES:
+1. Never repeat a paper already in paper_list.txt
+2. Rotate broadly — classical ML, deep learning, LLMs, generative, RL, vision
+3. Connect to paper_base.txt knowledge whenever possible
+4. One clear important concept per paper
+5. Mathematical explanations are encouraged when they aid understanding

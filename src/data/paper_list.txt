@@ -1,2 +1,1 @@
-RoFormer: Enhanced Transformer with Rotary Position Embedding
-QDyLoRA: Quantized Dynamic Low-Rank Adaptation for Efficient Large Language Model Tuning
+Linear Classification of data with Support Vector Machines and Generalized Support Vector Machines

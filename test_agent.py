@@ -25,7 +25,7 @@ def ask_api_print_response(prompt: str, model: str = "gemini", topic: str = "API
         case _:
             raise NotImplementedError(f"Model {model} not implemented")
 
-def arxiv_paper_call(query: str, topic: str = "Arxiv Call", max_results: int = 15):
+def arxiv_paper_call(query: str, topic: str = "Arxiv Call", max_results: int = 30):
     papers = list(arxiv.Search(query=query, max_results=max_results).results())
     print(f"##### {topic} ######")
     for paper in papers:
@@ -39,9 +39,18 @@ def find_first_paper_by_title(papers: list, title: str):
             return paper
     return None
 
-def update_knowledge_with_new_paper(add_on_input: str = ""):
+def summarize_information(paper_explaination,new_paper_base):
+    explaination_prompt = f'''Please summarize the following paper to easy to unerstand 200 words: \"{paper_explaination}\"'''
+    new_paper_base_prompt = f'''Please summarize the following knowledge base to easy to unerstand 200 words: \"{new_paper_base}\"'''
+    explaination_summary = ask_api_print_response(explaination_prompt, "gemini", "Explaination Summary")
+    new_paper_base_summary = ask_api_print_response(new_paper_base_prompt, "gemini", "New Paper Base Summary")
+    return explaination_summary, new_paper_base_summary
+
+def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     knowledge_base, paper_base, paper_list = load_paper_informaion()      
     # Key Word Search
+    if add_on_input:
+        add_on_input = f" Specifically I am interested in learning the conept(s)/content(s): \"{add_on_input}\"."
     learn_prompt= f"""I want to learn more about ML. 
     I might already have some knowledge which is stored in the following text: \"{knowledge_base}\". 
     Also, I might have learned already about the following papers: \"{paper_list}\" 
@@ -61,7 +70,8 @@ def update_knowledge_with_new_paper(add_on_input: str = ""):
     # Paper Decision
     paper_contents= f"""I want you to choose a paper that extend my current knowledge of Machine Learning
     , which is described by the following text:\"{knowledge_base}\".
-    My knowledge was extendet by the following papers: \"{paper_list}\" and the following information: \"{paper_base}\".
+    {add_on_input}
+    My knowledge was extendet by the following papers: \"{paper_list}\" and the following information: \"{paper_base}\" in the past.
     Please return only the exact title of the paper and nothing else! 
     Here are all possible papers I found {paper_titels} """
     paper_decision = ask_api_print_response(paper_contents, topic="Paper Decision")
@@ -79,6 +89,7 @@ def update_knowledge_with_new_paper(add_on_input: str = ""):
     paper_summary = f"""I have the following knowledge about Machine Learning: "{knowledge_base}".
     I found a paper with the title "{paper.title}" and the following abstract: "{paper.summary}".
 
+    {add_on_input}
     Please explain this paper in the following strict structure:
 
     PART 1 - DEEP FOUNDATION (this is the most important part, take a lot of space):
@@ -113,7 +124,8 @@ def update_knowledge_with_new_paper(add_on_input: str = ""):
     knowledge_prompt = f"""I have the following knowledge about Machine Learning: 
     \"{paper_base}\" (paper base). I received a paper with the title \"{paper.title}\"
     and the following abstract: \"{paper.summary}\". 
-    I got the following explanation of the paper: \"{paper_explaination}\". 
+    I got the following explanation of the paper: \"{paper_explaination}\".
+    {add_on_input} 
     Please update my current knowledge by including this new information, 
     if my knowledge is already very detailed this new information should not take to much space. 
     Else, it can take more space. I want a holistic knowledge base, considering both!"""
@@ -125,6 +137,9 @@ def update_knowledge_with_new_paper(add_on_input: str = ""):
 
     # Update the paper_list.txt with the current title
     append_to_file("src/data/paper_list.txt", paper.title + "\n")
+
+    if summarize:
+        paper_explaination, new_paper_base = summarize_information(paper_explaination,new_paper_base)
 
     return {
         "title":       paper.title,
