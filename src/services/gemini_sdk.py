@@ -22,4 +22,4 @@ def ask_gemini_with_retries(prompt: str, model = "gemini-3-flash-preview", retri
             wait = int(match.group(1)) + 1 if match else delay
             print(f"Attempt {attempt + 1} failed. Retrying in {wait}s...")
             time.sleep(wait)
-    raise Exception("All attempts failed")
+    raise Exception("All attempts failed ")
