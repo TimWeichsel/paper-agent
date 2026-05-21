@@ -1,0 +1,6 @@
+{
+    "graphs":{},
+    "env": ".env",
+    "dependencies":["."]
+
+}
