@@ -1,5 +1,6 @@
 import gradio as gr
-from test_agent import update_knowledge_with_new_paper, load_paper_informaion
+from test_agent import update_knowledge_with_new_paper, load_paper_information
+from src.graph import graph #import graph instance 
 
 def learn_new_paper(additional_input: str = ""):
     result = update_knowledge_with_new_paper(additional_input)
@@ -33,7 +34,10 @@ with gr.Blocks() as app_demo:
         gr.Markdown("# Current Paper Goals")
         with gr.Row():
             knowledge_base = gr.Textbox(label="Paper Goals")
-    app_demo.load(load_paper_informaion, outputs=[knowledge_base, paper_base, paper_list])                  
+    app_demo.load(load_paper_information, outputs=[knowledge_base, paper_base, paper_list])                  
 
+def start_agent(learning_preferences: str = "") -> str:
+    result = graph.invoke({"learning_preferences": learning_preferences})
+    return result["paper_title"], result["paper_explanation"], result["paper_base"]
 
 app_demo.launch()

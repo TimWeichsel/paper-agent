@@ -1,1 +1,2 @@
-Linear Classification of data with Support Vector Machines and Generalized Support Vector Machines
+Estimation and Inference of Heterogeneous Treatment Effects using Random Forests
+On the approximation of rough functions with deep neural networks

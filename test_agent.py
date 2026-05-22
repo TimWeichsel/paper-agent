@@ -1,32 +1,40 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from google import genai
 import arxiv
-from src.services.gemini_sdk import ask_gemini_with_retries
+from src.services.gemini_client import ask_gemini_with_retries
+from src.services.groq_client import ask_groq_with_retries
 from utils.file_utils import load_file, save_file, append_to_file
 
 
-def load_paper_informaion():
+def load_paper_information():
     knowledge_base = load_file("src/data/knowledge_base.txt", "No knowledge yet")# Read knowledge_base.txt
     paper_base = load_file("src/data/paper_base.txt", "No papers analyzed yet")# Read paper_base.txt
     paper_list = load_file("src/data/paper_list.txt", "No papers analyzed yet")# Read paper_list.txt
     return knowledge_base, paper_base, paper_list
 
 
-def ask_api_print_response(prompt: str, model: str = "gemini", topic: str = "API Call"):
+def ask_llm (prompt: str, model: str = "llama", topic: str = "API Call", print_response: bool = True):
     match model:
         case "gemini":
             response = ask_gemini_with_retries(prompt)
-            print(f"##### {topic} ######")
-            print(response)
-            print(f"###################################################")
+            if print_response:
+                print(f"##### {topic} ######")
+                print(response)
+                print(f"###################################################")
+            return response
+        case "llama":
+            response = ask_groq_with_retries(prompt)
+            if print_response:
+                print(f"##### {topic} ######")
+                print(response)
+                print(f"###################################################")
             return response
         case _:
             raise NotImplementedError(f"Model {model} not implemented")
 
 def arxiv_paper_call(query: str, topic: str = "Arxiv Call", max_results: int = 30):
-    papers = list(arxiv.Search(query=query, max_results=max_results).results())
+    papers = list(arxiv.Client(delay_seconds=3).results(arxiv.Search(query=query, max_results=max_results)))
     print(f"##### {topic} ######")
     for paper in papers:
         print(paper.title)
@@ -40,14 +48,14 @@ def find_first_paper_by_title(papers: list, title: str):
     return None
 
 def summarize_information(paper_explaination,new_paper_base):
-    explaination_prompt = f'''Please summarize the following paper to easy to unerstand 200 words: \"{paper_explaination}\"'''
-    new_paper_base_prompt = f'''Please summarize the following knowledge base to easy to unerstand 200 words: \"{new_paper_base}\"'''
-    explaination_summary = ask_api_print_response(explaination_prompt, "gemini", "Explaination Summary")
-    new_paper_base_summary = ask_api_print_response(new_paper_base_prompt, "gemini", "New Paper Base Summary")
+    explaination_prompt = f'''Please summarize the following paper to easy to understand with 200 words: \"{paper_explaination}\"'''
+    new_paper_base_prompt = f'''Please summarize the following knowledge base to easy to understand with 200 words: \"{new_paper_base}\"'''
+    explaination_summary = ask_llm(explaination_prompt, "gemini", "Explaination Summary")
+    new_paper_base_summary = ask_llm(new_paper_base_prompt, "gemini", "New Paper Base Summary")
     return explaination_summary, new_paper_base_summary
 
 def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
-    knowledge_base, paper_base, paper_list = load_paper_informaion()      
+    knowledge_base, paper_base, paper_list = load_paper_information()      
     # Key Word Search
     if add_on_input:
         add_on_input = f" Specifically I am interested in learning the conept(s)/content(s): \"{add_on_input}\"."
@@ -60,7 +68,7 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     for an arxiv paper seach. Please only give me 3-5 words that should find a good paper 
     that extends my knowledge and perfectly adds to my previous knowledge. 
     No markdown formatting, just plain text.{add_on_input}"""
-    key_word_text = ask_api_print_response(learn_prompt, "gemini", "Keyword Search")
+    key_word_text = ask_llm(learn_prompt, "gemini", "Keyword Search")
 
     # Paper Search
     papers = arxiv_paper_call(key_word_text, "Arxiv Paper Search", max_results=15)
@@ -74,7 +82,7 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     My knowledge was extendet by the following papers: \"{paper_list}\" and the following information: \"{paper_base}\" in the past.
     Please return only the exact title of the paper and nothing else! 
     Here are all possible papers I found {paper_titels} """
-    paper_decision = ask_api_print_response(paper_contents, topic="Paper Decision")
+    paper_decision = ask_llm(paper_contents, topic="Paper Decision")
 
 
     # Find Paper
@@ -118,7 +126,7 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     Be thorough in Part 1 — I want to deeply understand the prerequisites,
     not just skim them."""
 
-    paper_explaination = ask_api_print_response(paper_summary, topic="Paper Summary")
+    paper_explaination = ask_llm(paper_summary, topic="Paper Summary")
 
 
     knowledge_prompt = f"""I have the following knowledge about Machine Learning: 
@@ -128,9 +136,10 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     {add_on_input} 
     Please update my current knowledge by including this new information, 
     if my knowledge is already very detailed this new information should not take to much space. 
-    Else, it can take more space. I want a holistic knowledge base, considering both!"""
+    Else, it can take more space. I want a holistic knowledge base, considering both!
+    Dependding on the previous content depth add my new knowledge in a place that makes sense and use only so much space for the new content as it deserves."""
 
-    new_paper_base = ask_api_print_response(knowledge_prompt, topic="New Paper Base")
+    new_paper_base = ask_llm(knowledge_prompt, topic="New Paper Base")
 
     # Update the paper_base.txt with the current knowledge
     save_file("src/data/paper_base.txt", new_paper_base)
