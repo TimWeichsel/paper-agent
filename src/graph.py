@@ -57,8 +57,8 @@ def paper_assistant(state: AgentState) -> AgentState:
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + state["messages"])
     append_to_file("src/data/paper_list.txt", paper_title.content)
-    old_paper_base  =load_file("src/data/paper_base.txt", "No papers analyzed yet")# Read paper_base.txt
-    new_paper_base = llm.invoke([paper_base_update_msg] + old_paper_base + paper_base_update_msg2 + state["messages"])
+    old_paper_base  = HumanMessage(content=load_file("src/data/paper_base.txt", "No papers analyzed yet"))# Read paper_base.txt
+    new_paper_base = llm.invoke([paper_base_update_msg], old_paper_base, paper_base_update_msg2 + state["messages"])
     save_file("src/data/paper_base.txt", new_paper_base.content)
     return {"paper_title": paper_title.content, "paper_base": new_paper_base.content    }
 
