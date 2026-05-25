@@ -23,13 +23,15 @@ tools = [load_paper_information,arxiv_paper_search]
 llm_with_tools = llm.bind_tools(tools)
 
 # System message
-sys_msg = SystemMessage('''You are a machine learning research expert.
+def create_sys_msg(learning_preference: str):
+    return SystemMessage(f'''You are a machine learning research expert.
     Your goal is to find and explain a paper that extends the user's current ML knowledge.
         1. Use load_paper_information to retrieve the current knowledge base and paper history.
         2. Use arxiv_paper_search to find relevant papers.
         3. Choose the most suitable paper and explain it in detail.
-    Focus on papers that build on existing knowledge without repeating it
-    Return the following an The Title and the Explanation of the paper''')
+    If this string is not empty "{learning_preference}", focus on papers that build on the specified concepts and find a paper.
+    Else, focus on papers that build on existing knowledge without repeating the existing conepts.
+    Return only the following: The Title and the Explanation of the paper''')
 
 paper_titel_msg = SystemMessage('''You are a machine learning research expert.
     Your goal is to extract the title of the given paper information. Don't return anyhing but just the title.''')
@@ -51,14 +53,21 @@ class AgentState(MessagesState):
     paper_base: Optional[str]
 
 def paper_assistant(state: AgentState) -> AgentState:
+    learning_preference = state["learning_preferences"] if state["learning_preferences"] else ""
+    sys_msg = create_sys_msg(learning_preference)
     result = llm_with_tools.invoke([sys_msg] + state["messages"])
     return {"messages": [result]}
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + state["messages"])
+    print(state["messages"])
+    print("HEEEEEERE")
+    print(paper_titel_msg)
+    print(paper_title.content)
+    print("HEEEEEERE")
     append_to_file("src/data/paper_list.txt", paper_title.content)
     old_paper_base  = HumanMessage(content=load_file("src/data/paper_base.txt", "No papers analyzed yet"))# Read paper_base.txt
-    new_paper_base = llm.invoke([paper_base_update_msg], old_paper_base, paper_base_update_msg2 + state["messages"])
+    new_paper_base = llm.invoke([paper_base_update_msg, old_paper_base, paper_base_update_msg2] + state["messages"])
     save_file("src/data/paper_base.txt", new_paper_base.content)
     return {"paper_title": paper_title.content, "paper_base": new_paper_base.content    }
 
