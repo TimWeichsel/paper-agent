@@ -1,0 +1,1 @@
+Fourier Learning Machines: Nonharmonic Fourier-Based Neural Networks for Scientific Machine Learning

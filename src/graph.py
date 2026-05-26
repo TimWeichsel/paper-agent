@@ -3,6 +3,7 @@ temperature=0.3
 #Imports
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import tools_condition, ToolNode
@@ -19,18 +20,20 @@ load_dotenv()
 
 # Initialize llm with temperature
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
+#llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
 tools = [load_paper_information,arxiv_paper_search]
 llm_with_tools = llm.bind_tools(tools)
 
 # System message
-def create_sys_msg(learning_preference: str):
+def create_sys_msg(learning_preference: str, complexity_preference: str = "medium") -> SystemMessage:
     return SystemMessage(f'''You are a machine learning research expert.
     Your goal is to find and explain a paper that extends the user's current ML knowledge.
         1. Use load_paper_information to retrieve the current knowledge base and paper history.
-        2. Use arxiv_paper_search to find relevant papers.
+        2. Use arxiv_paper_search to find relevant papers (consider the user's preferences and complexity).
         3. Choose the most suitable paper and explain it in detail.
-    If this string is not empty "{learning_preference}", focus on papers that build on the specified concepts and find a paper.
-    Else, focus on papers that build on existing knowledge without repeating the existing conepts.
+    The user has the following complexity preference: "{complexity_preference}".
+    If this string is not empty "{learning_preference}", focus on papers that build on the specified concepts and find a paper. Do not direcly use the learning preference as your search term but rather adapt find a search query that matches both the learning preference and the complexity preference.
+    Else, find good papers that match the complexity preference and are relevant to the users current knowledge base.
     Return only the following: The Title and the Explanation of the paper''')
 
 paper_titel_msg = SystemMessage('''You are a machine learning research expert.
@@ -48,26 +51,31 @@ paper_base_update_msg2 = SystemMessage(
 # Define AgentState as a TypedDict
 class AgentState(MessagesState):
     learning_preferences: Optional[str]
+    complexity_preferences: Optional[str]
     paper_title: Optional[str]
     paper_explanation: Optional[str]
     paper_base: Optional[str]
 
 def paper_assistant(state: AgentState) -> AgentState:
-    learning_preference = state["learning_preferences"] if state["learning_preferences"] else ""
-    sys_msg = create_sys_msg(learning_preference)
-    result = llm_with_tools.invoke([sys_msg] + state["messages"])
+    learning_preference = state.get("learning_preferences") or ""
+    complexity_preference = state.get("complexity_preferences") or "medium"
+    sys_msg = create_sys_msg(learning_preference, complexity_preference)
+    messages = state["messages"] if state["messages"] else [HumanMessage(content="Find me a paper")]
+    result = llm_with_tools.invoke([sys_msg] + messages)
     return {"messages": [result]}
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + state["messages"])
-    print(state["messages"])
-    print("HEEEEEERE")
+    print("0")
+    print(state["messages"][-1])
+    print("1")
     print(paper_titel_msg)
+    print("2")
     print(paper_title.content)
-    print("HEEEEEERE")
+    print("3")
     append_to_file("src/data/paper_list.txt", paper_title.content)
     old_paper_base  = HumanMessage(content=load_file("src/data/paper_base.txt", "No papers analyzed yet"))# Read paper_base.txt
-    new_paper_base = llm.invoke([paper_base_update_msg, old_paper_base, paper_base_update_msg2] + state["messages"])
+    new_paper_base = llm.invoke([paper_base_update_msg, old_paper_base, paper_base_update_msg2, state["messages"][-1]])
     save_file("src/data/paper_base.txt", new_paper_base.content)
     return {"paper_title": paper_title.content, "paper_base": new_paper_base.content    }
 
