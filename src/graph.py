@@ -22,6 +22,7 @@ load_dotenv()
 
 # Initialize llm with temperature
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
+llm = ChatGroq(model="llama-3.1-8b-instant", temperature=temperature)
 #llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
 #llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
 #llm = ChatOllama(model="mistral", temperature=temperature)
@@ -31,6 +32,10 @@ llm_with_tools = llm.bind_tools(tools)
 
 # System message
 def create_sys_msg(query_preference: str, complexity_preference: str = "medium", paper_base: str = "No papers analyzed yet", knowledge_base: str = "No knowledge base found", tool_call_count: int = 0) -> SystemMessage:
+    if tool_call_count >= 3:
+        return SystemMessage(f'''You are a research expert. The user wants to learn the following: {knowledge_base}.
+                             You can see the messages. Choose one paper that matches the best and return only the following: The Title and the Explanation of the paper''')
+                             
     return SystemMessage(f'''You are a research expert. The user wants to learn the following: {knowledge_base}.
     This is the current base of he users known papers: {paper_base}
     Your goal is to find and explain a paper that extends the user's current knowledge or that matches their interests (if they specify a low complex paper than try to find the standard paper in this topic, use your knowledge what the name of the standard paper is).
@@ -45,11 +50,13 @@ def create_sys_msg(query_preference: str, complexity_preference: str = "medium",
 paper_titel_msg = SystemMessage('''You are a research expert.
     Your goal is to extract the title of the given paper information. Don't return anyhing but just the title.''')
 
+paper_base_update_msg = SystemMessage(
+    '''Please summarize the following paper in 200 words.''')
 
-paper_base_update_msg = SystemMessage(                  
+paper_base_update_msg_old = SystemMessage(                  
     '''Read the current knowledge base and expand it with the knowledge of the new paper. Give a full overview of all papers by consiering the current paper informaion and the base. Do not force to find connection but rather summarze the knowledge in a structured way. I don't need to have the information of when which paper was analyzed but rather a structured overview. Here is the base:''')
 
-paper_base_update_msg2 = SystemMessage(                  
+paper_base_update_msg2_old = SystemMessage(                  
     '''And here is the new paper information:''')
 
 
@@ -64,30 +71,40 @@ class AgentState(MessagesState):
     paper_assistent_tool_calls: Optional[int]
 
 def paper_assistant(state: AgentState) -> AgentState:
-    state["paper_assistent_tool_calls"] = state["paper_assistent_tool_calls"] if state["paper_assistent_tool_calls"] is not None else 0
     messages = state["messages"] or [HumanMessage(content="Find me a paper")]
     last_human_message_idx = next((len(messages)-1-message_idx for message_idx, message in enumerate(reversed(messages)) if isinstance(message, HumanMessage)), None) 
-    last_messages = messages[last_human_message_idx:] if last_human_message_idx is not None else [HumanMessage(content="Find me a paper")]
-    tool_call_count = sum(1 for m in last_messages if isinstance(m, ToolMessage))
+    last_messages = messages[last_human_message_idx:] if last_human_message_idx is not None else messages
+    print("START last_messages")
+    print(last_messages)
+    print("END last_messages")
+
+    print("START messages")
+    print(messages)
+    print("END messages")
+
+    tool_call_count = sum(1 for m in state["messages"] if isinstance(m, ToolMessage))
     state["paper_assistent_tool_calls"] = tool_call_count
 
     query_preference = state.get("query_preference") or ""
     complexity_preference = state.get("complexity_preferences") or "medium"
     knowledge_base = load_file("src/data/knowledge_base.txt", "No knowledge base found")
     paper_base = load_file("src/data/paper_base.txt", "No papers analyzed yet")
-    
+
     sys_msg = create_sys_msg(query_preference, complexity_preference, paper_base, knowledge_base, tool_call_count)
     
     llm_to_use = llm if tool_call_count >= 3 else llm_with_tools
+    print("STARTinvoke")
+    print(sys_msg)
+    print("END invoke")
     result = llm_to_use.invoke([sys_msg] + last_messages)
     return {"messages": [result], "paper_base": paper_base}
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + [HumanMessage(content=state["messages"][-1].content)])
     append_to_file("src/data/paper_list.txt", paper_title.content)
-    old_paper_base  = HumanMessage(content=state["paper_base"])
-    new_paper_base = llm.invoke([paper_base_update_msg, old_paper_base, paper_base_update_msg2]+ [HumanMessage(content=state["messages"][-1].content)])
-    save_file("src/data/paper_base.txt", new_paper_base.content)
+    #old_paper_base  = HumanMessage(content=state["paper_base"])
+    new_paper_base = llm.invoke([paper_base_update_msg] + [HumanMessage(content=state["messages"][-1].content)])
+    append_to_file("src/data/paper_base.txt", new_paper_base.content)
     return {"paper_title": paper_title.content, "paper_base": new_paper_base.content    }
 
 builder = StateGraph(AgentState)
