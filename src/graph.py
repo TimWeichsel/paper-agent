@@ -13,6 +13,7 @@ from typing import Optional, Literal, TypedDict
 
 from src.services.knowledge_retriever import load_paper_information
 from src.services.arxiv_client import arxiv_paper_search
+from src.services.serpapi_client import serpapi_paper_search
 
 from utils.file_utils import load_file, save_file, append_to_file
 
@@ -22,12 +23,12 @@ load_dotenv()
 
 # Initialize llm with temperature
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
-llm = ChatGroq(model="llama-3.1-8b-instant", temperature=temperature)
+#llm = ChatGroq(model="llama-3.1-8b-instant", temperature=temperature)
 #llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
 #llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
 #llm = ChatOllama(model="mistral", temperature=temperature)
 
-tools = [load_paper_information,arxiv_paper_search]
+tools = [load_paper_information,arxiv_paper_search, serpapi_paper_search]
 llm_with_tools = llm.bind_tools(tools)
 
 # System message
@@ -40,18 +41,19 @@ def create_sys_msg(query_preference: str, complexity_preference: str = "medium",
     This is the current base of he users known papers: {paper_base}
     Your goal is to find and explain a paper that extends the user's current knowledge or that matches their interests (if they specify a low complex paper than try to find the standard paper in this topic, use your knowledge what the name of the standard paper is).
         1. Use arxiv_paper_search to find relevant papers (consider preferences, complexity, avoid niche papers).
-        2. Choose the most suitable paper and explain it in detail.
+        2. If arxiv_paper_search fails or doesn't return good papers, use serpapi_paper_search to find relevant papers (but you only get a very short snippet)
+        3. Choose the most suitable paper and explain it in detail.
     The user has the following complexity preference: "{complexity_preference}".
     If this string is not empty, the user has the following query preference: "{query_preference}", focus on this query preference and find papers that build on the specified concepts. Do not direcly use the query preference as your search term but rather adapt find a search query that matches both the query preference and the complexity preference.
     Else, find good papers that match the complexity preference and are relevant to the users current knowledge base.
-    You can use up to 3 tool calls to find a good paper, current count is {tool_call_count}.
-    Return only the following: The Title and the Explanation of the paper''')
+    You should use only 1 arxiv_paper_search call. If it fails, use serpapi_paper_search as fallback (does not count). Current arxiv calls: {tool_call_count}.
+    Return only the following: The Title and a 200 word Explanation of the paper''')
 
 paper_titel_msg = SystemMessage('''You are a research expert.
     Your goal is to extract the title of the given paper information. Don't return anyhing but just the title.''')
 
 paper_base_update_msg = SystemMessage(
-    '''Please summarize the following paper in 200 words.''')
+    '''Please summarize the following paper in 200 words. This summary will be appended to the paper base''')
 
 paper_base_update_msg_old = SystemMessage(                  
     '''Read the current knowledge base and expand it with the knowledge of the new paper. Give a full overview of all papers by consiering the current paper informaion and the base. Do not force to find connection but rather summarze the knowledge in a structured way. I don't need to have the information of when which paper was analyzed but rather a structured overview. Here is the base:''')
@@ -82,30 +84,33 @@ def paper_assistant(state: AgentState) -> AgentState:
     print(messages)
     print("END messages")
 
-    tool_call_count = sum(1 for m in state["messages"] if isinstance(m, ToolMessage))
+    tool_call_count = sum(1 for m in last_messages if isinstance(m, ToolMessage))
     state["paper_assistent_tool_calls"] = tool_call_count
 
     query_preference = state.get("query_preference") or ""
     complexity_preference = state.get("complexity_preferences") or "medium"
     knowledge_base = load_file("src/data/knowledge_base.txt", "No knowledge base found")
     paper_base = load_file("src/data/paper_base.txt", "No papers analyzed yet")
-
-    sys_msg = create_sys_msg(query_preference, complexity_preference, paper_base, knowledge_base, tool_call_count)
     
+    sys_msg = create_sys_msg(query_preference, complexity_preference, paper_base, knowledge_base, tool_call_count)
+
     llm_to_use = llm if tool_call_count >= 3 else llm_with_tools
     print("STARTinvoke")
     print(sys_msg)
     print("END invoke")
     result = llm_to_use.invoke([sys_msg] + last_messages)
+    print("START result")
+    print(result)
+    print("END result")
     return {"messages": [result], "paper_base": paper_base}
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + [HumanMessage(content=state["messages"][-1].content)])
     append_to_file("src/data/paper_list.txt", paper_title.content)
     #old_paper_base  = HumanMessage(content=state["paper_base"])
-    new_paper_base = llm.invoke([paper_base_update_msg] + [HumanMessage(content=state["messages"][-1].content)])
-    append_to_file("src/data/paper_base.txt", new_paper_base.content)
-    return {"paper_title": paper_title.content, "paper_base": new_paper_base.content    }
+    paper_summary = llm.invoke([paper_base_update_msg] + [HumanMessage(content=state["messages"][-1].content)])
+    append_to_file("src/data/paper_base.txt", paper_summary.content)
+    return {"paper_title": paper_title.content, "paper_base": paper_summary.content}
 
 builder = StateGraph(AgentState)
 
