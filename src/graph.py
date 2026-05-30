@@ -37,23 +37,39 @@ def create_sys_msg(query_preference: str, complexity_preference: str = "medium",
         return SystemMessage(f'''You are a research expert. The user wants to learn the following: {knowledge_base}.
                              You can see the messages. Choose one paper that matches the best and return only the following: The Title and the Explanation of the paper''')
                              
-    return SystemMessage(f'''You are a research expert. The user wants to learn the following: {knowledge_base}.
-    This is the current base of he users known papers: {paper_base}
-    Your goal is to find and explain a paper that extends the user's current knowledge or that matches their interests (if they specify a low complex paper than try to find the standard paper in this topic, use your knowledge what the name of the standard paper is).
-        1. Use arxiv_paper_search to find relevant papers (consider preferences, complexity, avoid niche papers).
-        2. If arxiv_paper_search fails or doesn't return good papers, use serpapi_paper_search to find relevant papers (but you only get a very short snippet)
-        3. Choose the most suitable paper and explain it in detail.
+    return SystemMessage(f'''You are a concept learning expert. The user's existing knowledge base: {knowledge_base}.
+    Papers the user has already studied: {paper_base}
+    The user wants to deeply understand ONE specific concept — not just read a paper summary, but truly grasp the concept and know how to apply it.
+
+    Your task:
+        1. From the query preference or knowledge base, identify ONE concept the user should learn (if a specific concept is mentioned in the query preference, use that; otherwise, find a concept that naturally extends their knowledge or fulfills their general query preference).
+        2. Use your own knowledge to determine the single most canonical paper for that concept.
+           Examples: "basic ml model" → XGBoost paper or Logistic Regression; "attention" → "Attention Is All You Need"; "gradient boosting" → Friedman 2001.
+           Do NOT use the user's raw input as your search term — derive the actual paper concept (or title) first.
+        3. Search arxiv_paper_search using the concept/paper title or authors you identified in step 2.
+        4. If arxiv_paper_search returns an ERROR, call serpapi_paper_search with the same query — do not stop.
+        5. Use the found paper as the anchor for explaining the concept.
+
     The user has the following complexity preference: "{complexity_preference}".
-    If this string is not empty, the user has the following query preference: "{query_preference}", focus on this query preference and find papers that build on the specified concepts. Do not direcly use the query preference as your search term but rather adapt find a search query that matches both the query preference and the complexity preference.
-    Else, find good papers that match the complexity preference and are relevant to the users current knowledge base.
-    You should use only 1 arxiv_paper_search call. If it fails, use serpapi_paper_search as fallback (does not count). Current arxiv calls: {tool_call_count}.
-    Return only the following: The Title and a 200 word Explanation of the paper''')
+    If this string is not empty, the user has the following concept/query preference: "{query_preference}". Map this to the foundational or most widely cited paper in that area — think like a professor assigning the must-read paper for that topic.
+    Else, identify a concept that naturally extends the user's current knowledge base.
+
+    Return ONLY the following structure:
+    **Concept:** <Name of the concept>
+    **Paper:** <Title of the paper> — <Authors, Year>
+    **What it is:** <2-3 sentences: precise definition of the concept. Cite how the paper itself introduces or defines it.>
+    **How it works:** <4-5 sentences: the core mechanism, building from first principles. Reference the key section, figure, or result from the paper that best illustrates this.>
+    **Key insight from the paper:** <1-2 sentences: the single most important finding or contribution the paper makes about this concept — what makes this paper the go-to source.>
+    **How to apply it:** <3-4 sentences: concrete, practical steps for using this concept. Ground each step in what the paper demonstrates or proves is effective.>
+    **Connection to your knowledge:** <1-2 sentences: how this concept and paper relate to what the user already knows>''')
 
 paper_titel_msg = SystemMessage('''You are a research expert.
     Your goal is to extract the title of the given paper information. Don't return anyhing but just the title.''')
 
+paper_concept_msg = SystemMessage('''Extract the analyzed **Concept** of the given summary''')
+
 paper_base_update_msg = SystemMessage(
-    '''Please summarize the following paper in 200 words. This summary will be appended to the paper base''')
+    '''Please summarize the following paper in 200 words. This summary will be appended to the paper base. Directly start your answerwith the summary without any introduction.''')
 
 paper_base_update_msg_old = SystemMessage(                  
     '''Read the current knowledge base and expand it with the knowledge of the new paper. Give a full overview of all papers by consiering the current paper informaion and the base. Do not force to find connection but rather summarze the knowledge in a structured way. I don't need to have the information of when which paper was analyzed but rather a structured overview. Here is the base:''')
@@ -106,10 +122,21 @@ def paper_assistant(state: AgentState) -> AgentState:
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_title = llm.invoke([paper_titel_msg] + [HumanMessage(content=state["messages"][-1].content)])
-    append_to_file("src/data/paper_list.txt", paper_title.content)
-    #old_paper_base  = HumanMessage(content=state["paper_base"])
+    print("START title")
+    print(paper_title)
+    print("END title")
+    append_to_file("src/data/paper_list.txt", "\n\n" + paper_title.content)
+
+    paper_concept = llm.invoke([paper_concept_msg] + [HumanMessage(content=state["messages"][-1].content)])
+    print("START concept")
+    print(paper_concept)
+    print("END concept")
+    
     paper_summary = llm.invoke([paper_base_update_msg] + [HumanMessage(content=state["messages"][-1].content)])
-    append_to_file("src/data/paper_base.txt", paper_summary.content)
+    print("START summary")
+    print(paper_summary)
+    print("END summary")
+    append_to_file("src/data/paper_base.txt", "\n" + paper_concept.content + ": " + paper_summary.content)
     return {"paper_title": paper_title.content, "paper_base": paper_summary.content}
 
 builder = StateGraph(AgentState)
