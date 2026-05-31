@@ -1,0 +1,5 @@
+
+The analyzed **Concept** is: **Decision Trees**, a basic machine learning concept.: 1. A decision tree is a machine learning model that uses a tree-like structure to classify data or make decisions based on input features. It is a basic concept in machine learning that involves splitting data into subsets based on certain criteria.
+2. Used in: "Decision trees for decision making" by JF Magee — a foundational paper that introduces the concept of decision trees and their role in decision-making processes.
+There is no summary provided. Please provide the summary, and I will extract the analyzed concept for you.: 1. The concept refers to a specific idea or notion that is being discussed or explored, it is a fundamental principle or theory that underlies a particular subject or field of study. The concept is often defined and refined through research, analysis, and debate to establish a clear understanding of its meaning and significance.
+2. Used in: "A Conceptual Framework for Understanding Complex Systems" — the concept plays a central role in shaping the theoretical foundation of the framework.
