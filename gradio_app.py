@@ -1,6 +1,6 @@
 import gradio as gr
 from test_agent import update_knowledge_with_new_paper, load_paper_information
-from src.graph import graph #import graph instance 
+from agent.graph import graph #import graph instance 
 
 def learn_new_paper(additional_input: str = ""):
     result = update_knowledge_with_new_paper(additional_input)
