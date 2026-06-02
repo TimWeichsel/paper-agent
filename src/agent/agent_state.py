@@ -12,6 +12,7 @@ class AgentState(MessagesState):
     paper_summary: Optional[str]
 
     concept_base: Optional[str]
+    concept_names: Optional[str]
 
     paper_assistent_tool_calls: Optional[int]
     

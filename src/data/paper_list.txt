@@ -1,6 +1,7 @@
 
 
+Enhancing the Detection of Coronary Artery Disease Using Machine Learning
 
-There is no paper information provided to extract a title from.
+Explainable AI for Medical Diagnosis
 
-Applied Logistic Regression
+Deep Learning in Cardiology: A Narrative Review

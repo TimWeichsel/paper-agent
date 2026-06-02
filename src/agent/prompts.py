@@ -1,10 +1,13 @@
 from langchain_core.messages import SystemMessage
 
-def create_paper_assistent_sys_msg(query_preference: str, complexity_preference: str = "medium", concept_base: str = "No concepts learned yet", knowledge_base: str = "No knowledge base found", tool_call_count: int = 0) -> SystemMessage:
+def create_paper_assistent_sys_msg(query_preference: str, complexity_preference: str = "medium", concept_base: str = "No concepts learned yet", research_goals: str = "No research goals found", tool_call_count: int = 0) -> SystemMessage:
     if tool_call_count >= 3:
-        return SystemMessage(f'''You are a concept learning expert. Concepts the user already knows: {concept_base}. Knowledge base: {knowledge_base}.
+        return SystemMessage(f'''You are a concept learning expert.
+    Concepts the user already learned — you MUST NOT output any of these as the concept: {concept_base}
+    research goals: {research_goals}
     Complexity: "{complexity_preference}". Query: "{query_preference}".
 
+    Use the concept you already identified and searched for earlier in this conversation. Do NOT switch to a different concept.
     Using the search results above, return ONLY this structure:
     **Concept:** <concept name>
     **What it is:** <5-10 sentences: plain, precise definition — no examples, no analogies>
@@ -12,15 +15,17 @@ def create_paper_assistent_sys_msg(query_preference: str, complexity_preference:
     **Paper:** <title> — <authors, year>: <7 sentences on where and how this concept is concretely used or introduced in this paper>''')
 
     return SystemMessage(f'''You are a research assistant.
-    User knowledge base: {knowledge_base}
-    Concepts already learned: {concept_base}
+    User research goals: {research_goals}
+    Concepts already learned (do NOT pick any of these): {concept_base}
     Complexity preference: "{complexity_preference}"
     Query: "{query_preference}"
 
     Based on what the user already knows and has learned, identify the next concept they should learn.
+    The concept MUST NOT be one the user already learned — check the list above carefully.
     The concept must fit the complexity preference relative to their current level — if they know basic concepts, pick something one step further; if they know advanced concepts, pick accordingly.
+    The concept must be a standalone, well-known concept — NOT a broad field summary, application area, or topic cluster. The canonical paper can be an introduction or review paper, but only if it is the standard reference for explaining that specific concept.
     If a specific query is given, find a concept within that direction that matches their level.
-    Then identify the canonical paper for that concept and call arxiv_paper_search with the paper title. On ERROR call serpapi_paper_search.
+    Then identify the canonical paper for that concept and call arxiv_paper_search or serpapi_paper_search (and switch if an error occurs).
     Do NOT use the raw user query as search term — derive the actual paper title first.''')
 
 def create_paper_organizer_sys_msg(validator_title_msg: str = "", validator_concept_msg: str = "", validator_summary_msg: str = "") -> tuple[SystemMessage, SystemMessage, SystemMessage]:

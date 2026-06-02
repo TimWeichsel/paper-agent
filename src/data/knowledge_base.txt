@@ -1,2 +1,0 @@
-I want to learn the most important concepts a ML engineer must know to have a successful career.
-Find more standard paper than niche papers, unless I say so or the knowledge base is already completed with the basic concepts of a given topic.

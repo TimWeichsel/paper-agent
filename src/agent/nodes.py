@@ -19,13 +19,13 @@ from src.services.serpapi_client import serpapi_paper_search
 load_dotenv()
 
 # Initialize llm with temperature
-llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
+#llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
 #llm = ChatGroq(model="llama-3.1-8b-instant", temperature=temperature)
 #llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
-#llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
+llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
 #llm = ChatOllama(model="mistral", temperature=temperature)
 
-tools = [load_paper_information, arxiv_paper_search, serpapi_paper_search]
+tools = [arxiv_paper_search, serpapi_paper_search]#load_paper_information
 llm_with_tools = llm.bind_tools(tools)
 
 def paper_assistant(state: AgentState) -> AgentState:
@@ -45,10 +45,10 @@ def paper_assistant(state: AgentState) -> AgentState:
 
     query_preference = state.get("query_preference") or ""
     complexity_preference = state.get("complexity_preferences") or "medium"
-    knowledge_base = load_file("src/data/knowledge_base.txt", "No knowledge base found")
-    concept_base = load_file("src/data/concept_base.txt", "No concepts analyzed yet")
+    research_goals = load_file("src/data/research_goals.txt", "No knowledge base found")
+    concept_names = load_file("src/data/concept_names.txt", "No concepts analyzed yet")
     
-    sys_msg = create_paper_assistent_sys_msg(query_preference, complexity_preference, concept_base, knowledge_base, tool_call_count)
+    sys_msg = create_paper_assistent_sys_msg(query_preference, complexity_preference, concept_names, research_goals, tool_call_count)
 
     llm_to_use = llm if tool_call_count >= 3 else llm_with_tools
     print("STARTinvoke")
@@ -58,7 +58,7 @@ def paper_assistant(state: AgentState) -> AgentState:
     print("START result")
     print(result)
     print("END result")
-    return {"messages": [result], "concept_base": concept_base, "validator_title_message": "", "validator_concept_message": "", "validator_summary_message": "", "validator_title_rejection": True, "validator_concept_rejection": True, "validator_summary_rejection": True, "validator_counter": 0}
+    return {"messages": [result], "concept_names": concept_names, "validator_title_message": "", "validator_concept_message": "", "validator_summary_message": "", "validator_title_rejection": True, "validator_concept_rejection": True, "validator_summary_rejection": True, "validator_counter": 0}
 
 def paper_organizer(state: AgentState) -> AgentState:
     paper_titel_msg, paper_concept_msg, paper_summary_msg = create_paper_organizer_sys_msg(
@@ -127,6 +127,7 @@ def validator(state: AgentState) -> AgentState:
     if not title_not_approved and not concept_not_approved and not summary_not_approved:
         append_to_file("src/data/paper_list.txt", "\n\n" + state.get("paper_title"))
         append_to_file("src/data/concept_base.txt", "\n" + state.get("paper_concept") + ": " + state.get("paper_summary"))
+        append_to_file("src/data/concept_names.txt", "\n" + state.get("paper_concept"))
 
     if validator_counter < 3:
         return {"validator_title_rejection": title_not_approved, "validator_concept_rejection": concept_not_approved, "validator_summary_rejection": summary_not_approved, "validator_title_message": title_rejection_msg, "validator_concept_message": concept_rejection_msg, "validator_summary_message": summary_rejection_msg, "validator_counter": validator_counter}
