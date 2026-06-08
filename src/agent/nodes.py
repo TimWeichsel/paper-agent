@@ -20,16 +20,18 @@ load_dotenv()
 
 # Initialize llm with temperature
 #llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
-#llm = ChatGroq(model="llama-3.1-8b-instant", temperature=temperature)
+#llm = ChatGroq(model="openai/gpt-oss-20b, temperature=temperature)
+llm = ChatGroq(model="openai/gpt-oss-120b", temperature=temperature)
 #llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
-llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
+#llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
 #llm = ChatOllama(model="mistral", temperature=temperature)
 
-tools = [arxiv_paper_search, serpapi_paper_search]#load_paper_information
+tools = [serpapi_paper_search, arxiv_paper_search]#arxiv_paper_search, load_paper_information
 llm_with_tools = llm.bind_tools(tools)
+llm_mandatory_tools = llm.bind_tools(tools, tool_choice="required")
 
 def paper_assistant(state: AgentState) -> AgentState:
-    messages = state["messages"] or [HumanMessage(content="Find me a paper")]
+    messages = state["messages"] or [HumanMessage(content="Find me a concept to learn")]
     last_human_message_idx = next((len(messages)-1-message_idx for message_idx, message in enumerate(reversed(messages)) if isinstance(message, HumanMessage)), None) 
     last_messages = messages[last_human_message_idx:] if last_human_message_idx is not None else messages
     print("START last_messages")
@@ -47,10 +49,15 @@ def paper_assistant(state: AgentState) -> AgentState:
     complexity_preference = state.get("complexity_preferences") or "medium"
     research_goals = load_file("src/data/research_goals.txt", "No knowledge base found")
     concept_names = load_file("src/data/concept_names.txt", "No concepts analyzed yet")
-    
-    sys_msg = create_paper_assistent_sys_msg(query_preference, complexity_preference, concept_names, research_goals, tool_call_count)
+    learning_mode = state.get("learning_mode") or "new"
 
-    llm_to_use = llm if tool_call_count >= 3 else llm_with_tools
+    sys_msg = create_paper_assistent_sys_msg(query_preference, complexity_preference, concept_names, research_goals, tool_call_count, learning_mode)
+    if tool_call_count >= 3: #prevent tool loop
+        llm_to_use = llm 
+    elif tool_call_count==0: #first llm needs to call a tool 
+        llm_to_use = llm_mandatory_tools
+    else: #normal use of tools
+        llm_to_use = llm_with_tools
     print("STARTinvoke")
     print(sys_msg)
     print("END invoke")
@@ -99,7 +106,7 @@ def paper_organizer(state: AgentState) -> AgentState:
 
 def validator(state: AgentState) -> AgentState:
     validator_counter = state.get("validator_counter", 0) + 1
-    title_validator_msg, concept_validator_msg, summary_validator_msg = create_validator_sys_msg(state.get("paper_title"), state.get("paper_summary"), state.get("paper_concept"), state["messages"][-1].content)
+    title_validator_msg, concept_validator_msg, summary_validator_msg = create_validator_sys_msg(state.get("paper_title"), state.get("paper_summary"), state.get("paper_concept"))
 
     
     title_validator_result = llm.invoke([title_validator_msg])
@@ -125,8 +132,8 @@ def validator(state: AgentState) -> AgentState:
     summary_rejection_msg = summary_validator_result.content if summary_not_approved else ""
 
     if not title_not_approved and not concept_not_approved and not summary_not_approved:
-        append_to_file("src/data/paper_list.txt", "\n\n" + state.get("paper_title"))
-        append_to_file("src/data/concept_base.txt", "\n" + state.get("paper_concept") + ": " + state.get("paper_summary"))
+        append_to_file("src/data/paper_list.txt", "\n" + state.get("paper_title"))
+        append_to_file("src/data/concept_base.txt", "\n\n" + state.get("paper_concept") + ": " + state.get("paper_summary"))
         append_to_file("src/data/concept_names.txt", "\n" + state.get("paper_concept"))
 
     if validator_counter < 3:

@@ -1,7 +1,3 @@
 
 
-Enhancing the Detection of Coronary Artery Disease Using Machine Learning
-
-Explainable AI for Medical Diagnosis
-
-Deep Learning in Cardiology: A Narrative Review
+A Study of Cross‑Validation and Bootstrap for Accuracy Estimation and Model Selection

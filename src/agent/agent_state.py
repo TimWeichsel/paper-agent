@@ -6,6 +6,7 @@ from langgraph.graph import MessagesState
 class AgentState(MessagesState):
     query_preference: Optional[str]
     complexity_preferences: Optional[str]
+    learning_mode: Optional[Literal["new", "related"]]
 
     paper_title: Optional[str]
     paper_concept: Optional[str]
