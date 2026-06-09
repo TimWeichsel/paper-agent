@@ -22,6 +22,7 @@ def create_paper_assistent_sys_msg(query_preference: str, complexity_preference:
 
     Identify the next concept the user should learn. It must be a standalone, well-known concept — NOT a broad field or topic cluster.
     Then find the canonical paper and call semantic_scholar_paper_search (or serpapi_paper_search if the topic is suitable and semantic_scholar_paper_search is not working) up to three times.
+    If a paper has no PDF or results are irrelevant, try a different paper for the same concept or use serpapi_paper_search as fallback. Prefer papers with open access PDFs.
     Do NOT use the raw user query as the search term — derive the actual paper title first.''')
 
 def create_paper_organizer_sys_msg(validator_title_msg: str = "", validator_concept_msg: str = "", validator_summary_msg: str = "") -> tuple[SystemMessage, SystemMessage, SystemMessage]:
