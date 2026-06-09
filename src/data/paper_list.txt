@@ -1,3 +1,10 @@
 
 
 A Study of Cross‑Validation and Bootstrap for Accuracy Estimation and Model Selection
+Neural Networks and the Bias/Variance Dilemma
+Regression Shrinkage and Selection via the Lasso
+Introduction to Bootstrap Sampling
+Exponential smoothing method against the gradient boosting machine learning algorithm-based model for materials forecasting to minimize inventory
+Exponential smoothing method against the gradient boosting machine learning algorithm-based model for materials forecasting to minimize inventory
+Structured State Space Models for In-Context Reinforcement Learning
+Exponential Smoothing for Predicting Demand

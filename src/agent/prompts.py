@@ -11,7 +11,7 @@ def create_paper_assistent_sys_msg(query_preference: str, complexity_preference:
     if learning_mode == "new":
         mode_instruction = "Pick a concept the user has NOT learned yet — it must be completely new and have a different name than any concept listed above."
     else:
-        mode_instruction = "Pick a concept in the same clinical field as the concepts above, but a genuinely different concept — not a subcategory, variation, or rephrasing of an already-learned concept."
+        mode_instruction = "Pick a concept in the same field as one of the concepts above, but a genuinely different concept — not a subcategory, variation, or rephrasing of an already-learned concept."
 
     return SystemMessage(f'''You are a research assistant.
     User research goals: {research_goals}
@@ -21,7 +21,7 @@ def create_paper_assistent_sys_msg(query_preference: str, complexity_preference:
     Query: "{query_preference}"
 
     Identify the next concept the user should learn. It must be a standalone, well-known concept — NOT a broad field or topic cluster.
-    Then find the canonical paper and call serpapi_paper_search (or arxiv_paper_search if the topic is suitable) up to three times.
+    Then find the canonical paper and call semantic_scholar_paper_search (or serpapi_paper_search if the topic is suitable and semantic_scholar_paper_search is not working) up to three times.
     Do NOT use the raw user query as the search term — derive the actual paper title first.''')
 
 def create_paper_organizer_sys_msg(validator_title_msg: str = "", validator_concept_msg: str = "", validator_summary_msg: str = "") -> tuple[SystemMessage, SystemMessage, SystemMessage]:

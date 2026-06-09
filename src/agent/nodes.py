@@ -14,19 +14,23 @@ from src.agent.agent_state import AgentState
 from src.services.knowledge_retriever import load_paper_information
 from src.services.arxiv_client import arxiv_paper_search
 from src.services.serpapi_client import serpapi_paper_search
+from src.services.semantic_scholar_client import semantic_scholar_paper_search
+
+
 
 # Load all environment variables from .env file
 load_dotenv()
 
 # Initialize llm with temperature
-#llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
-#llm = ChatGroq(model="openai/gpt-oss-20b, temperature=temperature)
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=temperature)
+llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=temperature)
+#llm = ChatGroq(model="openai/gpt-oss-120b", temperature=temperature)
+#llm = ChatGroq(model="openai/gpt-oss-20b", temperature=temperature)
 #llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=temperature)
 #llm = ChatMistralAI(model="mistral-large-latest", temperature=temperature)
 #llm = ChatOllama(model="mistral", temperature=temperature)
 
-tools = [serpapi_paper_search, arxiv_paper_search]#arxiv_paper_search, load_paper_information
+tools = [semantic_scholar_paper_search, serpapi_paper_search]#arxiv_paper_search, load_paper_information
+llm_no_tools = llm.bind_tools([], tool_choice="none")
 llm_with_tools = llm.bind_tools(tools)
 llm_mandatory_tools = llm.bind_tools(tools, tool_choice="required")
 
@@ -53,7 +57,7 @@ def paper_assistant(state: AgentState) -> AgentState:
 
     sys_msg = create_paper_assistent_sys_msg(query_preference, complexity_preference, concept_names, research_goals, tool_call_count, learning_mode)
     if tool_call_count >= 3: #prevent tool loop
-        llm_to_use = llm 
+        llm_to_use = llm_no_tools
     elif tool_call_count==0: #first llm needs to call a tool 
         llm_to_use = llm_mandatory_tools
     else: #normal use of tools

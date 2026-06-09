@@ -1,2 +1,9 @@
 
 Cross‑validation
+Bias‑Variance Trade‑off
+Lasso
+Bootstrap Sampling
+Gradient Boosting
+Exponential Smoothing
+State Space Models
+Holt-Winters method
