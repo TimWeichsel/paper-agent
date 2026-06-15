@@ -10,7 +10,6 @@ services:
     volumes:
       - pgvector-data:/var/lib/postgresql/data
 
-
   paper-agent:
     build: .
     container_name: paper-agent-frontend
@@ -20,7 +19,6 @@ services:
       - .env
     depends_on:
       - db
-
 
 volumes:
   pgvector-data:

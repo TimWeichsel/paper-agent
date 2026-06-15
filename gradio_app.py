@@ -87,4 +87,4 @@ with gr.Blocks() as app_demo:
     concept_button.click(learn_new_paper, inputs=[learning_input, complexity_input, learning_mode], outputs=[paper_title, paper_concept, paper_summary, concept_base, concept_names, paper_list])              
 
 
-app_demo.launch()
+app_demo.launch(server_name="0.0.0.0")
