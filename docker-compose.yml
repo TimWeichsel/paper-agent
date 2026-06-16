@@ -17,10 +17,13 @@ services:
       - "7860:7860"
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=db
     depends_on:
       - db
 
 volumes:
   pgvector-data:
+
 
     
