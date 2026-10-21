@@ -94,7 +94,7 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
         exit()
 
     # Explain the paper in a simple but very detailed way
-    paper_summary = f"""I have the following knowledge about Machine Learning: "{knowledge_base}".
+    concept_summary = f"""I have the following knowledge about Machine Learning: "{knowledge_base}".
     I found a paper with the title "{paper.title}" and the following abstract: "{paper.summary}".
 
     {add_on_input}
@@ -126,7 +126,7 @@ def update_knowledge_with_new_paper(add_on_input: str = None, summarize=True):
     Be thorough in Part 1 — I want to deeply understand the prerequisites,
     not just skim them."""
 
-    paper_explaination = ask_llm(paper_summary, topic="Paper Summary")
+    paper_explaination = ask_llm(concept_summary, topic="Paper Summary")
 
 
     knowledge_prompt = f"""I have the following knowledge about Machine Learning: 
