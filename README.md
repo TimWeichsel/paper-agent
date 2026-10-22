@@ -34,7 +34,7 @@ Sees all the search results of the Paper-Researcher and the rejection messages o
 ## 3 Requirements for .env File (see .env.example)
 - API-KEYS:
     - GROQ_API_KEY (https://console.groq.com/home - free tier is sufficient)
-    - GOOGLE_API_KEY (https://aistudio.google.com -free tier is sufficient)
+    - GOOGLE_API_KEY (https://aistudio.google.com - free tier is sufficient)
     - SEMANTIC_SCHOLAR_API_KEY (https://www.semanticscholar.org/product/api - free tier is sufficient)
 
 - DB Information (choose any values):
