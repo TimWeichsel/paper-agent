@@ -1,4 +1,4 @@
-# Paper Agent by Tim Weichselberger
+# Paper Agent
 This project should help students learn different concepts in their domain. By defining their research goal, they can learn new concepts each backed with a relevant paper (to further study if interested) found with Semantic Scholar. All studied concepts are saved and visualized (PCA plot).
 
 ## 1 How it works
