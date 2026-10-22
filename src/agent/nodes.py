@@ -77,7 +77,8 @@ def paper_researcher(state: AgentState) -> AgentState:
     paper_candidates = _collect_all_paper_candidates_from_tool_messages(session_messages) # Collecting all paper candidates for the current search session
     target_concept = state.get("target_concept","") # If a target concept is set, it will be used for all searches and paper selection. Otherwise, the researcher can choose a new concept.
     sys_msg = create_paper_researcher_sys_msg(query_preference=query_preference, complexity_preference=complexity_preference, concept_names=concept_names, research_goals=research_goals, learning_mode=learning_mode, structured_llm_flag=structured_output_flag, target_concept=target_concept)
-    researcher_response = llm_to_use.invoke([sys_msg] + session_messages) # Either a tool call for searching a paper, text (answering no more tool calls are necessary) or a structured paper selection
+    llm_input = [sys_msg] + session_messages if not structured_output_flag else [sys_msg, _collect_all_search_results_from_tool_messages_to_human_message(messages=session_messages, user_msg=default_msg)]
+    researcher_response = llm_to_use.invoke(llm_input) # Either a tool call for searching a paper, text (answering no more tool calls are necessary) or a structured paper selection (with the controlled input)
  
     logger.debug(f"researcher sys_msg: {sys_msg}")
     logger.debug(f"researcher_response: {researcher_response}")
@@ -87,9 +88,12 @@ def paper_researcher(state: AgentState) -> AgentState:
         if not isinstance(researcher_response, PaperSelection): #llm delivered not a structured output (another last call is needed)
             llm_structured,structured_output_flag = _determine_llm_to_use(float('inf'), float('inf')) # Use LLM forced to structured output
             sys_msg = create_paper_researcher_sys_msg(query_preference=query_preference, complexity_preference=complexity_preference, concept_names=concept_names, research_goals=research_goals, learning_mode=learning_mode, structured_llm_flag=structured_output_flag, target_concept=target_concept)
-            researcher_response = llm_structured.invoke([sys_msg] + session_messages)
+            researcher_response = llm_structured.invoke([sys_msg, _collect_all_search_results_from_tool_messages_to_human_message(messages=session_messages, user_msg=default_msg)]) #Not showing any tool call in prompt, otherwise LLM might try to call a tool
+
+        messages = [] if state["messages"] else [HumanMessage(content=default_msg)] #Makes sure that the messages are never empty
         return {
             **NO_REJECTION_DICT,
+            "messages": messages,
             "paper_title": researcher_response.title,
             "paper_concept": researcher_response.concept_name,
             "paper_concept_definition": researcher_response.concept_definition,
@@ -105,8 +109,9 @@ def paper_researcher(state: AgentState) -> AgentState:
     else: #llm is not done
         if not target_concept: #If no target concept is set, it will be set
             target_concept = researcher_response.tool_calls[0]["args"].get("concept", "")
+        new_messages = [researcher_response] if state["messages"] else [HumanMessage(content=default_msg), researcher_response] #First run, include the default message, so that messages start with HumanMessage (including the user's query preference)
         return {
-            "messages": [researcher_response],
+            "messages": new_messages,
             "paper_candidates": paper_candidates,
             "target_concept": target_concept
         }
@@ -126,7 +131,7 @@ def _determine_llm_to_use(tool_call_count:int, attempted_tool_call_count:int, to
 
     '''
     llm_with_tools = LLM.bind_tools(tools).with_fallbacks([LLM_BACKUP.bind_tools(tools)])
-    llm_mandatory_tools = LLM.bind_tools(tools, tool_choice="required").with_fallbacks([LLM_BACKUP.bind_tools(tools)])
+    llm_mandatory_tools = LLM.bind_tools(tools, tool_choice="required").with_fallbacks([LLM_BACKUP.bind_tools(tools, tool_choice="any")])
     llm_structured_output = LLM.with_structured_output(PaperSelection, method="json_schema").with_fallbacks([LLM_BACKUP.with_structured_output(PaperSelection)])
 
     if tool_call_count >= max_tool_calls or attempted_tool_call_count >= max_attempted_tool_calls: #if the tool has been called max_tool_calls times or max_attempted_tool_calls times, use structured output llm
@@ -172,6 +177,12 @@ def _is_successful_tool_call(message) -> bool:
     if isinstance(message.artifact, dict) and bool(message.artifact): #non-empty dict check
         return True
     return False
+
+def _collect_all_search_results_from_tool_messages_to_human_message(messages: list, user_msg: str) -> HumanMessage:
+    '''Creates a new human message with all paper candidates and an user prompt.'''
+    search_results = "\n".join(message.content for message in messages if _is_successful_tool_call(message))
+    return HumanMessage(content=f"{user_msg}\nSearch results:\n{search_results}")
+
 
 def validator(state: AgentState) -> AgentState:
     '''
@@ -235,7 +246,7 @@ def validator(state: AgentState) -> AgentState:
         "saved_to_db": False
         }
 
-def _find_duplicate_concept(state: AgentState, max_distance:float=MAX_COSINE_DUPLICATE_DISTANCE) -> str:
+def _find_duplicate_concept(state: AgentState, max_distance:float=MAX_COSINE_DUPLICATE_DISTANCE) -> str | None:
     most_similar = get_most_similar_concept(concept=state.get("paper_concept"), concept_definition=state.get("paper_concept_definition"))
     if most_similar is None:
         return None

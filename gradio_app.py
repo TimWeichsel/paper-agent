@@ -58,15 +58,15 @@ def load_data() -> tuple[str, str, str, str]:
 def reset_db():
     '''Drops all tables in databases, except the research goal entry'''
     drop_db()
-    reset_concept_base()
+    _,_,plot = reset_concept_base()
     initialize_db()
-    return ""
+    return "", "", "", plot
 
 def reset_concept_base():
     '''Drops the concepts (not paper or authors) from the table.'''
     drop_concept_table()
     initialize_db()
-    return ""
+    return "", "", generate_new_pca_plot()
 
 def update_research_goals(new_research_goals: str):
     '''Updates users' research goal in the database.'''
@@ -91,14 +91,14 @@ with gr.Blocks() as app_demo:
         with gr.Row():
             concept_definition = gr.Textbox(label="Concept Definition")
         with gr.Row():
-            concept_summary = gr.Textbox(label="Concept Summary", max_lines=20)
+            concept_summary = gr.Textbox(label="Concept Summary", lines=3, max_lines=20, autoscroll=False)
         with gr.Row():
             paper_title = gr.Textbox(label="Paper Title")
         with gr.Row():
             with gr.Column(scale=2):
                 concept_map = gr.Plot(label="Concept Map")
             with gr.Column(scale=1):
-                concept_names = gr.Textbox(label="All Concepts Learned So Far", max_lines=20)
+                concept_names = gr.Textbox(label="All Concepts Learned So Far", lines=10, max_lines=20, autoscroll=False)
 
         
     
@@ -108,15 +108,15 @@ with gr.Blocks() as app_demo:
             concept_base = gr.TextArea(label="Concepts Learned So Far", lines=50, max_lines=300, autoscroll=False)
         with gr.Row():
             reset_concept_base_button = gr.Button("Reset Concept Base")
-        reset_concept_base_button.click(reset_concept_base, inputs=[], outputs=[concept_base])
+        reset_concept_base_button.click(reset_concept_base, inputs=[], outputs=[concept_base, concept_names, concept_map])
 
     with gr.Tab("Current Paper List"):
         gr.Markdown("# Current Paper List")
         with gr.Row():
-            paper_list = gr.TextArea(label="Paper List", lines=50, max_lines=300, autoscroll=False)
+            paper_list = gr.TextArea(label="Paper List", lines=30, max_lines=100, autoscroll=False)
         with gr.Row():
             reset_db_button = gr.Button("Reset Paper and Concept Base")
-        reset_db_button.click(reset_db, inputs=[], outputs=[paper_list])
+        reset_db_button.click(reset_db, inputs=[], outputs=[paper_list, concept_base, concept_names, concept_map])
         
         
     with gr.Tab("Current Research Goals"):
