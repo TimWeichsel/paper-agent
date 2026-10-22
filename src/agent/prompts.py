@@ -1,77 +1,94 @@
+from typing import Literal
 from langchain_core.messages import SystemMessage
 
-def create_paper_assistent_sys_msg(query_preference: str, complexity_preference: str = "medium", concept_names: str = "No concepts learned yet", research_goals: str = "No research goals found", tool_call_count: int = 0, learning_mode: str = "new") -> SystemMessage:
-    if tool_call_count >= 3:
+DEFINITION_PROMPT = "concept_definition: 1-2 sentences defining the concept precisely in plain terms. No examples, no analogies."
+CONCEPT_NAME_PROMPT = "concept_name: Short, canonical name of a concept in plain text, no sentence, no markdown, no explanation - it may include abbreviations, hyphens, or uppercase letters."
+SUMMARY_PROMPT = "4 sentences defining the concept precisely."
+EXAMPLE_PROMPT = "A concrete example (2-3 sentences) of how an expert applies this concept in research, including the data/task and why the concept is used."
+USE_CASE_PROMPT = "One sentence in the format: \"Used in: [paper title] — [role of concept in paper]\"."
+
+def create_paper_researcher_sys_msg(query_preference: str, complexity_preference: Literal["basic", "medium", "advanced"] = "medium", concept_names: str = "No concepts learned yet", research_goals: str = "No research goals found", learning_mode: Literal["new", "related"] = "new", structured_llm_flag: bool = False, target_concept: str = "") -> SystemMessage:
+    '''Researcher prompt: search papers for the (fixed) concept, or fill PaperSelection if structured_llm_flag is True.'''    
+    concept_names = concept_names or "None Concept defined yet"
+    fixed_concept_msg = f"The chosen concept (FIXED, do NOT change it!) is {target_concept}. Do NOT switch to a different concept. Use this concept for all searches and paper selection." if target_concept else ""
+    if structured_llm_flag:
         return SystemMessage(f'''You are a concept learning expert.
-    Use the concept you already identified and searched for earlier in this conversation. Do NOT switch to a different concept.
-    Using the search results above, return ONLY this structure:
-    **Concept:** <concept name> | **What it is:** <5-10 sentences: plain, precise definition — no examples, no analogies> | **Connection to your knowledge:** <4 sentence: how this relates to what the user already knows> | **Paper:** <title> — <authors, year>: <7 sentences on where and how this concept is concretely used or introduced in this paper>
-    Include the structure:  **<part>**: ... | ''')
+            {fixed_concept_msg}
+            Based on the search results, fill in the following fields:
+            - title: The EXACT paper title as it appears in the search results. Copy it character by character.
+            - {CONCEPT_NAME_PROMPT}
+            - {DEFINITION_PROMPT}
+            - concept_summary: 3 parts — (1) {SUMMARY_PROMPT} (2) {EXAMPLE_PROMPT} (3) {USE_CASE_PROMPT}
+            
+            Do NOT call any tools. Choose from the search results above.
+            ''')
 
     if learning_mode == "new":
         mode_instruction = "Pick a concept the user has NOT learned yet — it must be completely new and have a different name than any concept listed above."
     else:
         mode_instruction = "Pick a concept in the same field as one of the concepts above, but a genuinely different concept — not a subcategory, variation, or rephrasing of an already-learned concept."
 
+    concept_text = fixed_concept_msg if target_concept else f'''User Query for the next concept: "{query_preference}" (If this string is not empty, then the user wants to learn about this specific concept, which you have to consider and this is a strict requirement!)
+    Concepts already learned (do NOT pick these or any variation of them): {concept_names}.
+    Identify the next concept the user should learn. It must be a standalone, well-known concept — NOT a broad field or topic cluster. 
+    Translate the user query into the established, canonical name of the concept as used in the literature (e.g. "Compression SVD" → "Truncated SVD", "knn" → "K-Nearest Neighbors"). 
+    Use this canonical name as concept. \n Instructions:{mode_instruction}'''
+    
     return SystemMessage(f'''You are a research assistant.
     User research goals: {research_goals}
-    Concepts already learned (do NOT pick these or any variation of them): {concept_names}
-    Instruction: {mode_instruction}
     Complexity preference: "{complexity_preference}"
-    Query: "{query_preference}"
 
-    Identify the next concept the user should learn. It must be a standalone, well-known concept — NOT a broad field or topic cluster.
-    Then find the canonical paper and call semantic_scholar_paper_search (or serpapi_paper_search if the topic is suitable and semantic_scholar_paper_search is not working) up to three times.
-    If a paper has no PDF or results are irrelevant, try a different paper for the same concept or use serpapi_paper_search as fallback. Prefer papers with open access PDFs.
+    Your Task:
+    {concept_text}
+    Find the canonical paper and call semantic_scholar_paper_search.
+    If no canonical paper is found, you can also try a well-cited survey or tutorial paper that explains the concept in detail.
+    If you have found already a sufficient paper for your concept, you can stop searching (no tool call needed!). You can just answer with DONE!
+    If results are irrelevant, try a different paper for the same concept.
+    Never repeat a search query you already used: each search must use a different query.
     Do NOT use the raw user query as the search term — derive the actual paper title first.''')
 
-def create_paper_organizer_sys_msg(validator_title_msg: str = "", validator_concept_msg: str = "", validator_summary_msg: str = "") -> tuple[SystemMessage, SystemMessage, SystemMessage]:
-    if validator_title_msg != "":
-        validator_title_msg = f"Note that the validator said noted an error in your last try: {validator_title_msg}"
-    if validator_concept_msg != "":
-        validator_concept_msg = f"Note that the validator said noted an error in your last try: {validator_concept_msg}"
-    if validator_summary_msg != "":
-        validator_summary_msg = f"Note that the validator said noted an error in your last try: {validator_summary_msg}"
-    
-    paper_titel_msg = SystemMessage(f'''You are a research expert.
-        Your goal is to extract the title of the given paper information. Don't return anyhing but just the title. {validator_title_msg}''')
+def create_validator_sys_msg(paper_title: str, concept: str, concept_definition: str, concept_summary: str) -> tuple[SystemMessage, SystemMessage, SystemMessage]:
+    '''Validator prompts for concept name, definition and summary (each answered with ResultValidation).'''
+    approve_text = '''Set approved to true if it satisfies the objective. Otherwise set approved to false and explain briefly in reason what is wrong, so the next LLM can fix it.'''
 
-    paper_concept_msg = SystemMessage(f'''Extract the concept name from the given summary. Return ONLY the concept name — no formatting, no "The analyzed Concept is:", no markdown bold. Just the plain name. {validator_concept_msg}''')
-
-
-    paper_summary_msg = SystemMessage(
-        f'''From the following explanation, write exactly three things — no introduction, start directly and don't use line breaks or markdown formatting:
-        1. 4 sentences defining the concept precisely in plain terms. No examples, no analogies.
-        2. Give an example how an expert would use this concept and how it would be applied in research y given details to the concept!
-        3. One sentence: "Used in: [paper title] — [what role the concept plays in that paper]".  {validator_summary_msg}''')
-    
-    return (paper_titel_msg, paper_concept_msg, paper_summary_msg)
-
-def create_validator_sys_msg(paper_title: str, paper_summary: str, paper_concept: str) -> tuple[SystemMessage, SystemMessage, SystemMessage]:
-    #paper_titel_msg, paper_concept_msg, _ =create_paper_organizer_sys_msg()
-    approve_text = f"If it does return the word \"approve\" in your very short message (nothing else is needed but the following logic will check for this word). If it does not satisfy the objective, return also a short message to explain the llm what was wrong (but do not use the key word \"approve\", otherwise it will be counted as correct)!"
-    
-    title_validator_msg = SystemMessage(f'''You are a validator. Check if this extracted title is valid: "{paper_title}"
-                        A valid title is a plain text string — no extra explanation, no formatting.
+    concept_validator_msg = SystemMessage(f'''You are a validator. Check if this extracted concept name is valid: "{concept}"
+                        A valid {CONCEPT_NAME_PROMPT}
                         {approve_text}
                         ''')
 
-    concept_validator_msg = SystemMessage(f'''You are a validator. Check if this extracted concept name is valid: "{paper_concept}"
-                        A valid concept name is a short, plain text string — no extra explanation, no formatting.
-                        {approve_text}
-                        ''')
+    concept_definition_validator_msg = SystemMessage(f'''You are a semantic validator. Check if the following concept definition is correct: "{concept}" - "{concept_definition}"
+        {DEFINITION_PROMPT}
+        {approve_text}''')
     
-    summary_validator_msg = SystemMessage(f'''You are a semantic validator. Check if the following summary is correct: "{paper_summary}"
-        Your task is to check wether the extracted information satisfies the objective:
+    summary_validator_msg = SystemMessage(f'''You are a semantic validator. Check if the following summary is correct: "{concept_summary}"
+        Your task is to check whether the extracted information satisfies the objective:
         
         Approve if ALL of these are true:
-            1. The concept is defined factually and precisely (does not need to be a specific number of sentences)
-            2. An example how an expert would use this concept and how it would be applied in research is included with details.
-            3. A paper title is referenced with "Used in:" and its role is described
+            1. The concept is defined factually and precisely and aligns with the concept "{concept}".
+            2. {EXAMPLE_PROMPT}
+            3. {USE_CASE_PROMPT} — and it references the paper title "{paper_title}".
 
         Do NOT reject based on formatting, sentence count, paragraph structure, or writing style.
         Only reject if the content is factually wrong, missing a section, or completely off-topic.
 
         {approve_text}''')
 
-    return (title_validator_msg, concept_validator_msg, summary_validator_msg)
+    return (concept_validator_msg, concept_definition_validator_msg, summary_validator_msg)
+
+def create_paper_refiner_sys_msgs(validator_title_msg: str = "", validator_concept_msg: str = "", validator_concept_definition_msg: str = "", validator_summary_msg: str = "") -> tuple[SystemMessage, SystemMessage, SystemMessage, SystemMessage]:
+    '''Refiner prompts for title, concept, definition and summary, each including the validator's feedback'''
+    paper_title_msg = SystemMessage(f'''You are a research expert.
+        From the list of available paper titles, choose the most appropriate one. Return ONLY the exact title, nothing else. {validator_title_msg}''')
+
+    paper_concept_msg = SystemMessage(f'''You are given a concept name that was rejected by a validator. A correct {CONCEPT_NAME_PROMPT} Return ONLY the corrected name - The validator indicated: {validator_concept_msg}''')
+
+    concept_definition_msg = SystemMessage(f'''Rewrite the given {DEFINITION_PROMPT} - The validator indicated: {validator_concept_definition_msg}''')
+
+    concept_summary_msg = SystemMessage(
+        f'''Rewrite the given summary using the paper abstract. Write exactly three parts, no introduction, no line breaks, no markdown:
+        1. {SUMMARY_PROMPT}
+        2. {EXAMPLE_PROMPT}
+        3. {USE_CASE_PROMPT}
+        - The validator indicated: {validator_summary_msg}''')
+    
+    return (paper_title_msg, paper_concept_msg, concept_definition_msg, concept_summary_msg)

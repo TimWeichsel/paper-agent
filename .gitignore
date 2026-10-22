@@ -1,3 +1,11 @@
 .env
-.langgraph_api/
 *.pckl
+pca_concepts.png
+pca_test.py
+run.log
+.langgraph_api/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.claude/
