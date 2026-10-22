@@ -37,8 +37,8 @@ class ResultValidation(BaseModel):
 
 # Initialize LLMs with fixed temperature
 TEMPERATURE=0.3
-LLM = ChatGroq(model="openai/gpt-oss-120b", temperature=TEMPERATURE, reasoning_effort="low")
-LLM2 = ChatGroq(model="openai/gpt-oss-20b", temperature=TEMPERATURE, reasoning_effort="low")
+LLM = ChatGroq(model="openai/gpt-oss-120b", temperature=TEMPERATURE, reasoning_effort="low", timeout=60, max_retries = 1)
+LLM2 = ChatGroq(model="openai/gpt-oss-20b", temperature=TEMPERATURE, reasoning_effort="low", timeout=60, max_retries = 2)
 LLM_BACKUP = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=TEMPERATURE)
 LLM_VALIDATOR = LLM2.with_structured_output(ResultValidation).with_fallbacks([LLM_BACKUP.with_structured_output(ResultValidation)])
 LLM_REFINER = LLM2.with_fallbacks([LLM_BACKUP])

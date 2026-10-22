@@ -66,6 +66,8 @@ Then open http://localhost:7860
 - Current Paper List - All papers of the studied concepts
 - Current Research Goals - Define your Research Goals so the agents find the right papers and concepts for you to study (START WITH THIS TAB FOR BEST RESULTS)
 
+![Agent Graph](static_images/frontend_example.png)
+
 ## 7 Limitations
 - project runs in your Docker container and thus only via localhost
 - rate-limits for free tier LLM plans might not be sufficient
